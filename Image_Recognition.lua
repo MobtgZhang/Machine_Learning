@@ -24,7 +24,7 @@ print(trainset)
 print(#trainset.data)
 
 ---Add size() function and Tensor index operator 
-    setmetatable(trainset, 
+setmetatable(trainset, 
     {__index = function(t, i) 
                     return {t.data[i], t.label[i]} 
                 end}
@@ -40,14 +40,12 @@ stdv = {}
 for k = 1,3 do
     print(type(trainset.data[{ {}, {k}, {}, {}  }]))
     mean[k] = trainset.data[{ {}, {k}, {}, {}  }]:mean()
-    break
     print('Channel '..k..',Mean: '..mean[k])
     trainset.data[{ {}, {k}, {}, {}  }]:add(-mean[k])
-    stdv[k] = trainset.data[{ {}, {k}, {}, {}  }]:stdv()
+    stdv[k] = trainset.data[{ {}, {k}, {}, {}  }]:std()
     print('Channel '..k..',Standard Deviation: '..stdv[k])
-    trainset.data[{{},{k},{},{}}]:dvi(stdv[k])
+    trainset.data[{{},{k},{},{}}]:div(stdv[k])
 end
-
 -- model defination 
 net = nn.Sequential()
 net:add(nn.SpatialConvolution(3,6,5,5))
@@ -70,14 +68,72 @@ print('Lenet5\n' .. net:__tostring())
 criterion = nn.ClassNLLCriterion()
 
 --train of the network 
-trainer = nn.StochasticGradient(net,criterion)
+local trainer = nn.StochasticGradient(net,criterion)
 trainer.learningRate = 0.001
 -- the number of the training process
 trainer.maxIteration = 5
 trainer:train(trainset)
+
 -- test data 
-testset.data = testset.data:double()
+---Add size() function and Tensor index operator 
+setmetatable(testset, 
+    {__index = function(t, i) 
+                    return {t.data[i], t.label[i]} 
+                end}
+);
+
+function testset:size() 
+    return self.data:size(1) 
+end
+testset.data = testset.data:double() 
+--normalize the testdata
+
 for k=1,3 do
-    testset.data[{{},{k},{},{}}]:add(-mean[k])
-    testset.data[{{},{k},{},{}}]:div(stdv[k])
+    testset.data[{ {}, {k}, {}, {} }]:add(-mean[k])
+    print(testset)
+    testset.data[{ {}, {k}, {}, {} }]:div(stdv[k])
+end
+
+--predict test and print confidences
+--itorch.image(testset.data[400])
+predicted = net:forward(testset.data[400])
+print(predicted:exp())
+
+
+--sort confidence and print predicted result
+confidences, indices = torch.sort(predicted, true)
+print(confidences[1])
+print(indices[1])
+print(classes[indices[1]])
+
+--correct rate in total
+correct = 0
+for i=1,10000 do
+    local groundtruth = testset.label[i]
+    local prediction = net:forward(testset.data[i])
+    local confidences, indices = torch.sort(prediction, true)
+
+    if groundtruth == indices[1] then
+        correct = correct + 1
+    end
+end
+
+print(correct, 100*correct/10000 .. '%')
+
+
+--correct rate every class
+class_performance = {0,0,0,0,0,0,0,0,0,0}
+for i = 1,10000 do
+    local groundtruth = testset.label[i]
+    local prediction = net:forward(testset.data[i])
+    local confidences, indices = torch.sort(prediction, true)
+
+    if groundtruth == indices[1] then
+        class_performance[groundtruth] = class_performance[groundtruth] + 1
+    end 
+end
+
+
+for i = 1, #classes do 
+    print(classes[i], 100*class_performance[i]/1000 .. '%')
 end
