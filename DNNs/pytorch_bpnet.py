@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
  
 import imageio
 import os
+import shutil
 
 def create_gif(image_list, gif_name):
     frames = []
@@ -60,5 +61,7 @@ def train():
             plt.savefig(filename)
     plt.ioff()
     save_gif(file_path,"pytorch_bpnet.gif")
+    shutil.rmtree(file_path,True)
+    print ("Directory: " + file_path +" was removed!")
 if __name__ == "__main__":
     train()
