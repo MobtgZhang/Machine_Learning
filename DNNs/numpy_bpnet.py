@@ -1,10 +1,9 @@
 import numpy as np
-def sigmoid(x):
-	return 1/(1+np.exp(-x))
-def diff_sigmoid(x):
-	return sigmoid(x)(1-sigmoid(x))
+import utils
 class Linear:
 	def __init__(self,in_dim,out_dim):
+		self.in_dim = in_dim
+		self.out_dim = out_dim
 		# initalize the weight and bais in_dim*out_dim
 		self.weight =  np.random.rand(in_dim,out_dim)
 		self.bais = np.random.rand(out_dim)
@@ -12,97 +11,66 @@ class Linear:
 		# input the value length*in_dim
 		y = np.matmul(x,self.weight)+self.bais
 		return y
-class NetDNN:
-	def __init__(self,in_dim,hid_dim_list,out_dim):
-		self.in_dim = in_dim
-		self.out_dim = out_dim
+	def __str__(self):
+		return "Linear layer: \nin_dim: "+str(self.in_dim)+"," + "out_dim: "+str(self.out_dim)
+class DNNNet:
+	def __init__(self,hid_dim_list):
 		self.hid_dim_list = hid_dim_list
-		self.num_layers = len(hid_dim_list) - 1
-		self.hidden_layers = []
-		# input layer
-		self.input  = Linear(self.in_dim,self.hid_dim_list[0])
-		# hidden layers
+		self.hidden_list = []
+		self.num_layers = len(hid_dim_list)-1
 		for k in range(self.num_layers):
 			fc = Linear(self.hid_dim_list[k],self.hid_dim_list[k+1])
-			self.hidden_layers.append(fc)
-		# output layers
-		self.output = Linear(self.hid_dim_list[self.num_layers],out_dim)
+			self.hidden_list.append(fc)
 	def forward(self,x):
-		hid = sigmoid(self.input.forward(x))
 		for k in range(self.num_layers):
-			hid = self.hidden_layers[k].forward(hid)
-			hid = sigmoid(hid)
-		out = self.output.forward(hid)
-		return out
-	def _layer_forward(x,index):
-		hid = sigmoid(self.input.forward(x))
-		for k in range(index):
-			hid = self.hidden_layers[k].forward(hid)
-			hid = sigmoid(hid)
-		if index <0:
-			return self.input.forward(x)
-		else:
-			return self.hidden_layers[index]
-	def loss(self,x,y_score,y_label):
-		weight_list = []
+			activate = utils.sigmoid(x)
+			x = self.hidden_list[k].forward(activate)
+		return x
+	def backward(self,x,y_true):
 		bais_list = []
-		# the last layer gradient
-		out_grad = (y_score - y_label)
-		weight_list.append(out_grad)
-
-		delta = (y_score - y_label)
+		weight_list = []
+		y_pred = self.forward(x)
+		delta = utils.diff_quadlf(y_true,y_pred)
 		bais_list.append(delta)
-
-		weight = self.output.weight
-		# the hidden layers gradient
-		for k in range(self.num_layers-1,0,-1):
-			# delta value
-			m = diff_sigmoid(self._layer_forward(x,k))
-			n = weight.T.matmul(delta)
-			delta = np.multiply(m,n)
+		for k in range(self.num_layers-2,0,-1):
+			# calculate this layer grad delta and weight_grad
+			out = x
+			for j in range(k):
+				activate = utils.sigmoid(out)
+				out = self.hidden_list[j].forward(activate)
 			
-			m = sigmoid(self._layer_forward(x,k-1))
-			out_grad = delta.matmul(m.T)
-
+			activate = utils.sigmoid(out)
+			weight_grad = np.matmul(activate.T,delta)
+			
+			weight_list.append(weight_grad)
+			# calculdate the previews layer delta
+			t = np.matmul(delta,self.hidden_list[k+1].weight.T)
+			if k==0:
+				pass
+			else:
+				out = x
+				for j in range(k-1):
+					activate = utils.sigmoid(out)
+					out = self.hidden_list[j].forward(activate)
+			df_a = utils.diff_sigmoid(out)
+			delta = np.multiply(df_a,t)
 			bais_list.append(delta)
-			weight_list.append(out_grad)
-			# weight value
-			weight = self.hidden_layers[k].weight
-		# the input layers gradient
-		
-	def update_grad(self,weight_list,bais_list,learning_rate):
-		# input layer
-		self.input.weight = self.input.weight - learning_rate*weight_list[0]
-		self.input.bais = self.input.bais - learning_rate*bais_list[0]
-		# hidden layers
+		print(len(bais_list))
+	def update_grad(self,bais_list,weight_list):
+		pass
+	def __str__(self):
+		line = ""
 		for k in range(self.num_layers):
-			self.hidden_layers[k].weight - learning_rate*weight_list[k]
-			self.hidden_layers[k].bais - learning_rate*bais_list[k]
-		# output layer
-		self.output.weight = self.input.weight - learning_rate*weight_list[self.num_layers]
-		self.output.weight = self.input.bais - learning_rate*bais_list[self.num_layers]
-	def backward(self):
-		out = self
+			line = line + "("+str(k)+")" +"Linear layer: \nin_dim: "+str(self.hidden_list[k].in_dim)+"," + "out_dim: "+str(self.hidden_list[k].out_dim) +"\n"
+		return line
 def main():
-	
-	in_dim = 5
-	out_dim = 4
-	hid_dim_list = [5,5,3,4,7,8,6,8]
-	bpnet = NetDNN(in_dim,hid_dim_list,out_dim)
 	x = np.random.rand(9,5)
-	y = bpnet.forward(x)
-	print(y)
-	print(y.shape)
-	'''
-	matrix = np.random.rand(9,5)
-	linear = np.random.rand(1,5)
-	print(linear)
-	print("\n")
-	print(matrix)
-	print("\n")
-	out = matrix + linear
-	print(out)
-	print("\n")
-	'''
-if __name__ == "__main__":
+	y = np.random.rand(9,7)
+	linear = Linear(5,10)
+	hid_dim_list = [5,10,20,60,100,50,30,10,7]
+	dnnnet = DNNNet(hid_dim_list)
+	z = dnnnet.forward(x)
+	dnnnet.backward(x,y)
+	print(z)
+if __name__ == '__main__':
 	main()
