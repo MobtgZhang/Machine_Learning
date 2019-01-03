@@ -25,39 +25,50 @@ class DNNNet:
 		for k in range(self.num_layers):
 			activate = utils.sigmoid(x)
 			x = self.hidden_list[k].forward(activate)
-		return x
+		activate = utils.sigmoid(x)
+		return activate
 	def backward(self,x,y_true):
 		bais_list = []
 		weight_list = []
-		y_pred = self.forward(x)
-		delta = utils.diff_quadlf(y_true,y_pred)
-		bais_list.append(delta)
-		for k in range(self.num_layers-2,0,-1):
-			# calculate this layer grad delta and weight_grad
-			out = x
-			for j in range(k):
-				activate = utils.sigmoid(out)
-				out = self.hidden_list[j].forward(activate)
-			
-			activate = utils.sigmoid(out)
-			weight_grad = np.matmul(activate.T,delta)
-			
-			weight_list.append(weight_grad)
-			# calculdate the previews layer delta
-			t = np.matmul(delta,self.hidden_list[k+1].weight.T)
-			if k==0:
-				pass
-			else:
+		for k in range(self.num_layers,0,-1):
+			# calculdate delta
+			if k==self.num_layers:
 				out = x
-				for j in range(k-1):
+				for j in range(k):
 					activate = utils.sigmoid(out)
 					out = self.hidden_list[j].forward(activate)
-			df_a = utils.diff_sigmoid(out)
-			delta = np.multiply(df_a,t)
+				delta = utils.diff_sigmoid(out)*(utils.sigmoid(out)-y_true) # 9*7
+			else:
+				# update the delta
+				weight_post = self.hidden_list[k].weight
+				delta_post = bais_list[self.num_layers - k-1]
+				out = x
+				for j in range(k):
+					activate = utils.sigmoid(out)
+					out = self.hidden_list[j].forward(activate)
+				delta = utils.diff_sigmoid(out)*np.matmul(delta_post,weight_post.T)
+			# print(delta.shape)
+			# calculdate weight
+			out = x
+			for j in range(k-1):
+				activate = utils.sigmoid(out)
+				out = self.hidden_list[j].forward(activate)
+			activate = utils.sigmoid(out)
+			weight_grad = np.matmul(activate.T,delta) # 10*7
+
+			# add bais_list and weight_list
 			bais_list.append(delta)
-		print(len(bais_list))
-	def update_grad(self,bais_list,weight_list):
-		pass
+			weight_list.append(weight_grad)
+		return weight_list,bais_list
+	def update_grad(self,weight_list,bais_list):
+		for k in range(self.num_layers):
+			# print(self.hidden_list[k].weight.shape,weight_list[k].shape)
+			# print(self.hidden_list[k].bais.shape,bais_list[k].shape)
+			self.hidden_list[k].weight = self.hidden_list[k].weight - weight_list[self.num_layers - k-1]
+			self.hidden_list[k].bais = self.hidden_list[k].bais - bais_list[self.num_layers - k-1]
+	def loss(self,x,y_true):
+		y_pred = self.forward(x)
+		return utils.quadlf(y_pred,y_true)
 	def __str__(self):
 		line = ""
 		for k in range(self.num_layers):
@@ -68,9 +79,12 @@ def main():
 	y = np.random.rand(9,7)
 	linear = Linear(5,10)
 	hid_dim_list = [5,10,20,60,100,50,30,10,7]
+	num_epoches = 20
 	dnnnet = DNNNet(hid_dim_list)
-	z = dnnnet.forward(x)
-	dnnnet.backward(x,y)
-	print(z)
+	for k in range(num_epoches):
+		weight_list,bais_list = dnnnet.backward(x,y)
+		dnnnet.update_grad(weight_list,bais_list)
+		loss = dnnnet.loss(x,y)
+		print("loss: ",loss)
 if __name__ == '__main__':
 	main()
