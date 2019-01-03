@@ -1,5 +1,6 @@
 import numpy as np
 import utils
+import matplotlib.pyplot as plt
 class Linear:
 	def __init__(self,in_dim,out_dim):
 		self.in_dim = in_dim
@@ -13,6 +14,14 @@ class Linear:
 		return y
 	def __str__(self):
 		return "Linear layer: \nin_dim: "+str(self.in_dim)+"," + "out_dim: "+str(self.out_dim)
+class BatchNormalize:
+	def __init__(self):
+		self.mean = 0
+		self.std = 0
+	def forward(self,x):
+		self.mean = x.mean()
+		self.std = x.std()
+		return (x - self.mean)/self.std
 class DNNNet:
 	def __init__(self,hid_dim_list):
 		self.hid_dim_list = hid_dim_list
@@ -21,10 +30,12 @@ class DNNNet:
 		for k in range(self.num_layers):
 			fc = Linear(self.hid_dim_list[k],self.hid_dim_list[k+1])
 			self.hidden_list.append(fc)
+		self.batch = BatchNormalize()
 	def forward(self,x):
 		for k in range(self.num_layers):
 			activate = utils.sigmoid(x)
 			x = self.hidden_list[k].forward(activate)
+			x = self.batch.forward(x)
 		activate = utils.sigmoid(x)
 		return activate
 	def backward(self,x,y_true):
@@ -60,7 +71,7 @@ class DNNNet:
 			bais_list.append(delta)
 			weight_list.append(weight_grad)
 		return weight_list,bais_list
-	def update_grad(self,weight_list,bais_list):
+	def update_grad(self,weight_list,bais_list,learning_rate = 1):
 		for k in range(self.num_layers):
 			# print(self.hidden_list[k].weight.shape,weight_list[k].shape)
 			# print(self.hidden_list[k].bais.shape,bais_list[k].shape)
@@ -75,16 +86,30 @@ class DNNNet:
 			line = line + "("+str(k)+")" +"Linear layer: \nin_dim: "+str(self.hidden_list[k].in_dim)+"," + "out_dim: "+str(self.hidden_list[k].out_dim) +"\n"
 		return line
 def main():
-	x = np.random.rand(9,5)
-	y = np.random.rand(9,7)
-	linear = Linear(5,10)
-	hid_dim_list = [5,10,20,60,100,50,30,10,7]
-	num_epoches = 20
-	dnnnet = DNNNet(hid_dim_list)
-	for k in range(num_epoches):
-		weight_list,bais_list = dnnnet.backward(x,y)
-		dnnnet.update_grad(weight_list,bais_list)
-		loss = dnnnet.loss(x,y)
-		print("loss: ",loss)
+    x = np.linspace(-1,1,300)
+    y = 10 * np.power(x,3) - 6 * x + 8
+    y = y/y.max()
+    tip = 0.2
+    y = y - tip + tip * np.random.rand(300)
+    x = x.reshape(300,1)
+    y = y.reshape(300,1)
+
+    hid_dim_list = [1,10,30,1]
+    num_epoches = 15000
+    learning_rate = 0.5
+    dnnnet = DNNNet(hid_dim_list)
+    plt.ion()
+    for k in range(num_epoches):
+        weight_list,bais_list = dnnnet.backward(x,y)
+        dnnnet.update_grad(weight_list,bais_list,learning_rate)
+        loss = dnnnet.loss(x,y)
+        if k%100 == 0:
+        	plt.cla()
+        	y_pre = dnnnet.forward(x)
+        	plt.scatter(x,y)
+        	plt.plot(x,y_pre)
+        	plt.pause(0.1)
+        	print("loss: ",loss)
+    plt.ioff()
 if __name__ == '__main__':
 	main()
