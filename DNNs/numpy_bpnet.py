@@ -35,7 +35,7 @@ class DNNNet:
 		for k in range(self.num_layers):
 			activate = utils.sigmoid(x)
 			x = self.hidden_list[k].forward(activate)
-			x = self.batch.forward(x)
+			# x = self.batch.forward(x)
 		activate = utils.sigmoid(x)
 		return activate
 	def backward(self,x,y_true):
@@ -71,11 +71,11 @@ class DNNNet:
 			bais_list.append(delta)
 			weight_list.append(weight_grad)
 		return weight_list,bais_list
-	def update_grad(self,weight_list,bais_list,learning_rate = 1):
+	def update_grad(self,weight_list,bais_list,learning_rate = 1,lamda = 0):
 		for k in range(self.num_layers):
 			# print(self.hidden_list[k].weight.shape,weight_list[k].shape)
 			# print(self.hidden_list[k].bais.shape,bais_list[k].shape)
-			self.hidden_list[k].weight = self.hidden_list[k].weight - weight_list[self.num_layers - k-1]
+			self.hidden_list[k].weight = self.hidden_list[k].weight - weight_list[self.num_layers - k-1] + lamda * self.hidden_list[k].weight
 			self.hidden_list[k].bais = self.hidden_list[k].bais - bais_list[self.num_layers - k-1]
 	def loss(self,x,y_true):
 		y_pred = self.forward(x)
@@ -96,12 +96,13 @@ def main():
 
     hid_dim_list = [1,10,30,1]
     num_epoches = 15000
-    learning_rate = 0.5
+    learning_rate = 0.1
+    lamda = -0.1
     dnnnet = DNNNet(hid_dim_list)
     plt.ion()
     for k in range(num_epoches):
         weight_list,bais_list = dnnnet.backward(x,y)
-        dnnnet.update_grad(weight_list,bais_list,learning_rate)
+        dnnnet.update_grad(weight_list,bais_list,learning_rate,lamda)
         loss = dnnnet.loss(x,y)
         if k%100 == 0:
         	plt.cla()
