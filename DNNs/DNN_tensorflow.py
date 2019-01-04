@@ -1,6 +1,9 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
+import utils
+import os
+import shutil
 class Linear:
 	def __init__(self,in_size,out_size):
 		self.in_size = in_size
@@ -27,7 +30,6 @@ class DNNNet:
 			out = tf.nn.tanh(out)
 		out = self.output.forward(out)
 		return out
-
 def main():
 	x_data = np.linspace(-1,1,300)[:,np.newaxis]
 	y_data = 10 * np.power(x_data,3) - 5 * x_data + 6
@@ -40,7 +42,9 @@ def main():
 	hid_dim_list = [1,10,20,30]
 	out_size = 1
 	learning_rate = 0.01
-	num_epoches = 1500
+	num_epoches = 2000
+	img_savepath = "C:\\Users\\asus\\Desktop\\projects\\tmpimgs"
+	gif_name = "C:\\Users\\asus\\Desktop\\projects\\tf_DNNNet.gif"
 	dnnnet = DNNNet(hid_dim_list,out_size)
 
 	prediction = dnnnet.forward(in_data)
@@ -50,6 +54,8 @@ def main():
 	sess = tf.Session()
 	sess.run(init)
 	plt.ion()
+	if not os.path.exists(img_savepath):
+		os.mkdir(img_savepath)
 	for k in range(num_epoches):
 		sess.run(train_step,feed_dict = {in_data:x_data,sign_data:y_data})
 		loss_data = sess.run(loss,feed_dict = {in_data:x_data,sign_data:y_data})
@@ -62,7 +68,12 @@ def main():
 			plt.scatter(x_t,z_t)
 			plt.plot(x_t,y_t,'r-',lw = 3)
 			plt.pause(0.01)
+			temp_file = os.path.join(img_savepath,"pic" + str(k//100) + ".png")
+			plt.savefig(temp_file)
 			print(loss_data)
 	plt.ioff()
+	utils.save_gif(img_savepath,gif_name)
+	if os.path.exists(img_savepath):
+		shutil.rmtree(img_savepath,True)
 if __name__ =="__main__":
 	main()
