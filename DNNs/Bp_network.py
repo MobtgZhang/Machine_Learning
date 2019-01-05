@@ -4,6 +4,14 @@ import os
 
 import shutil
 import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style('dark')
+def get_triangular_lr(iteration, stepsize, base_lr, max_lr):
+    """Given the inputs, calculates the lr that should be applicable for this iteration"""
+    cycle = np.floor(1 + iteration/(2  * stepsize))
+    x = np.abs(iteration/stepsize - 2 * cycle + 1)
+    lr = base_lr + (max_lr - base_lr) * np.maximum(0, (1-x))
+    return lr
 class Linear:
 	def __init__(self,in_dim,out_dim):
 		self.in_dim = in_dim
@@ -30,6 +38,7 @@ class DNNNet:
 		self.hid_dim_list = hid_dim_list
 		self.hidden_list = []
 		self.num_layers = len(hid_dim_list)-1
+		self.nums = hid_dim_list[self.num_layers]
 		for k in range(self.num_layers):
 			fc = Linear(self.hid_dim_list[k],self.hid_dim_list[k+1])
 			self.hidden_list.append(fc)
@@ -74,12 +83,23 @@ class DNNNet:
 			bais_list.append(delta)
 			weight_list.append(weight_grad)
 		return weight_list,bais_list
-	def update_grad(self,weight_list,bais_list,learning_rate = 1,lamda = 0):
+	def update_grad_sgd(self,weight_list,bais_list,learning_rate = 1,lamda = 0):
+		N = self.nums
+		# SGD algorithm
 		for k in range(self.num_layers):
-			# print(self.hidden_list[k].weight.shape,weight_list[k].shape)
-			# print(self.hidden_list[k].bais.shape,bais_list[k].shape)
-			self.hidden_list[k].weight = self.hidden_list[k].weight - weight_list[self.num_layers - k-1] + lamda * self.hidden_list[k].weight
-			self.hidden_list[k].bais = self.hidden_list[k].bais - bais_list[self.num_layers - k-1]
+			self.hidden_list[k].weight = self.hidden_list[k].weight - weight_list[self.num_layers - k-1]/N + lamda * self.hidden_list[k].weight
+			self.hidden_list[k].bais = self.hidden_list[k].bais - bais_list[self.num_layers - k-1]/N
+	'''
+	def update_grad_sgdr(self,weight_list,bais_list,lamda = 0):
+		N = self.nums
+		# SGDR algorithm
+		lrMax = 1
+		lrMin = 0
+
+		learning_rate = lrMin + 0.5*(lrMax - lrMin)(1 + )
+		for k in range(self.num_layers):
+			pass
+	'''
 	def loss(self,x,y_true):
 		y_pred = self.forward(x)
 		return utils.quadlf(y_pred,y_true)
@@ -100,24 +120,31 @@ def main():
     gif_name = "C:\\Users\\asus\\Desktop\\projects\\DNNNet.gif"
 
     hid_dim_list = [1,10,30,1]
-    num_epoches = 1500
-    learning_rate = 0.1
+    num_epoches = 5000
+    stepsize = 100
     lamda = -0.1
+    stepsize = 100
+    base_lr = 0.001
+    max_lr = 0.005
+    learning_rate = get_triangular_lr(0, stepsize, base_lr, max_lr)
     dnnnet = DNNNet(hid_dim_list)
     if not os.path.exists(img_savepath):
     	os.mkdir(img_savepath)
     plt.ion()
-    for k in range(num_epoches):
+    for iteration in range(num_epoches):
         weight_list,bais_list = dnnnet.backward(x,y)
-        dnnnet.update_grad(weight_list,bais_list,learning_rate,lamda)
+        dnnnet.update_grad_sgd(weight_list,bais_list,learning_rate,lamda)
         loss = dnnnet.loss(x,y)
-        if k%100 == 0:
+        if iteration%stepsize == 0:
+        	# SGDR algorithm
+        	learning_rate = get_triangular_lr(iteration,stepsize,base_lr,max_lr)
         	plt.cla()
         	y_pre = dnnnet.forward(x)
-        	plt.scatter(x,y)
+        	plt.scatter(x,y,c = "r",marker='o', edgecolors='g')
+        	sns.despine()
         	plt.plot(x,y_pre)
         	plt.pause(0.1)
-        	temp_file = os.path.join(img_savepath,"pic" + str(k//100) + ".png")
+        	temp_file = os.path.join(img_savepath,"pic" + str(iteration//100) + ".png")
         	plt.savefig(temp_file)
         	print("loss: ",loss)
     plt.ioff()
