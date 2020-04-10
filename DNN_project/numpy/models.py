@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import math
 class Relu:
     def __init__(self):
         self.name = "sigmoid"
@@ -17,10 +18,13 @@ class Sigmoid:
     def __init__(self):
         self.name = "sigmoid"
         def sigmoid(x):
-            return 1 / (1 + np.exp(-x))
-        self.sigmoid = sigmoid
+            if x>0:
+                return 1.0/(1+math.exp(-x))
+            else:
+                return math.exp(x) / (1 + math.exp(x))
+        self.sigmoid = np.vectorize(sigmoid)
     def forward(self,input):
-        return 1/(1+np.exp(-input))
+        return self.sigmoid(input)
     def diff(self,input):
         return np.multiply(self.sigmoid(input),1-self.sigmoid(input))
 class Tanh:
@@ -30,6 +34,20 @@ class Tanh:
         return np.tanh(input)
     def diff(self,input):
         return 1 - np.multiply(np.tanh(input), np.tanh(input))
+class SoftPlus:
+    def __init__(self):
+        self.name = "softplus"
+        def softplus(x):
+            if x>0:
+                return x+math.log(1+np.exp(-x))
+            else:
+                return math.log(1+np.exp(x))
+        self.softplus = np.vectorize(softplus)
+    def forward(self,input):
+        return self.softplus(input)
+    def diff(self,input):
+        sigmoid = Sigmoid()
+        return sigmoid.forward(input)
 class Linear:
     def __init__(self,in_dim,out_dim):
         self.in_dim = in_dim
@@ -93,6 +111,8 @@ class DNNNet_Regression:
             return Tanh
         elif name == "relu":
             return Relu
+        elif name == "softplus":
+            return SoftPlus
         else:
             raise TypeError("Unknown type %s"%str(name))
     def forward(self,input):
@@ -116,7 +136,9 @@ class DNNNet_Regression:
                 hidden = self.act_class.forward(out)
                 out = self.hidden_list[j].forward(hidden)
             delta_W = np.dot(out.T,delta_l)
-            delta_b = delta_l
+            batch = delta_l.shape[0]
+            delta_b = np.sum(delta_l,axis=0)/batch
+
             # update the next delta_l
             delta_l = np.multiply(self.act_class.diff(out),np.dot(delta_l,self.hidden_list[k].weight.T))
             # save the gradient
