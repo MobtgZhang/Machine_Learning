@@ -14,7 +14,9 @@ def train(model,loadedData,args):
         length = loadedData.getlen(0)
         for j in range(length):
             input,target = loadedData.getitem(j, 0)
-            model.batch_backward(input,target)
+            weight_grad_list,bais_grad_list = model.backward(input,target)
+            model.update_grad(weight_grad_list,bais_grad_list)
+            # model.batch_backward(input,target)
             output = model.forward(input)
             loss = model.loss(output,target)
             loss_sum = loss_sum + loss
@@ -42,7 +44,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--datadir", default="data", help="Defination of the data file path.", type=str)
     parser.add_argument("--learning_rate", default=0.3, help="Defination of the network training learning rate.",
-                        type=int)
+                        type=float)
     parser.add_argument("--logdir",default="log",help="Defination of logs file path.",type=str)
     parser.add_argument("--actfunc",default="sigmoid",help="Defination of activate function.",type=str)
     parser.add_argument("--layers",default="50,30,10",help="Defination of model of hidden layers.",type=str)
