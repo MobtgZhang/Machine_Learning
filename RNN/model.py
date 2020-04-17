@@ -1,59 +1,79 @@
+import abc
 import numpy as np
 import theano
 import theano.tensor as T
-class Linear:
+class Module:
+    def __init__(self):
+        # save parameters
+        self.parameters = {}
+        # save gradients
+        self.gradients = {}
+    def backward(self,loss_func):
+        for param in self.parameters:
+            self.gradients[param] = T.grad(loss_func,self.parameters[param])
+class Linear(Module):
     def __init__(self,in_dim,out_dim,b = True):
+        super().__init__()
         self.in_dim = in_dim
         self.out_dim = out_dim
 
-        weight = np.random.random(in_dim,out_dim)
-        self.weight = theano.shared(value=weight,name="weight")
+        weight = np.random.rand(in_dim,out_dim)
+        self.parameters["weight"] = theano.shared(value=weight,name="weight")
         if b:
             bais = np.random.rand(out_dim)
-            self.bais = theano.shared(value=bais,name="bais")
+            self.parameters["bais"] = theano.shared(value=bais,name="bais")
     def forward(self,input):
-        if hasattr(self,"bais"):
-            return T.dot(input,self.weight) + self.bais
+        weight = self.parameters["weight"]
+        if "bais" in self.parameters:
+            bais = self.parameters["bais"]
+            return T.dot(input,weight) + bais
         else:
-            return T.dot(input,self.weight)
-class BiLinear:
+            return T.dot(input,weight)
+class DoubleLinear(Module):
     def __init__(self,in_dim1,in_dim2,out_dim,b = True):
+        super().__init__()
         self.in_dim1 = in_dim1
         self.in_dim2 = in_dim2
         self.out_dim = out_dim
 
-        weightA = np.random.random(in_dim1,out_dim)
-        weightB = np.random.random(in_dim2,out_dim)
-        self.weightA = theano.shared(value=weightA,name="weightA")
-        self.weightB = theano.shared(value=weightB,name="weightB")
+        weightA = np.random.rand(in_dim1,out_dim)
+        weightB = np.random.rand(in_dim2,out_dim)
+        self.parameters["weightA"] = theano.shared(value=weightA,name="weightA")
+        self.parameters["weightB"] = theano.shared(value=weightB,name="weightB")
         if b:
             bais = np.random.rand(out_dim)
-            self.bais = theano.shared(value=bais,name="bais")
+            self.parameters["bais"] = theano.shared(value=bais,name="bais")
     def forward(self,input1,input2):
-        if hasattr(self,"bais"):
-            return T.dot(input1,self.weightA)+T.dot(input2,self.weightB)+self.bais
+        weightA = self.parameters["weightA"]
+        weightB = self.parameters["weightB"]
+        if "bais" in self.parameters:
+            bais = self.parameters["bais"]
+            return T.dot(input1,weightA)+T.dot(input2,weightB)+bais
         else:
-            return T.dot(input1,self.weightA)+T.dot(input2,self.weightB)
-class RNN:
-    def __init__(self,in_dim,hid_dim,num_layers=1,bidirectional = False,batch_first = False):
+            return T.dot(input1,weightA)+T.dot(input2,weightB)
+class RNNBase(Module):
+    def __init__(self,in_dim,hid_dim,num_layers = 1,bidirectional = False,batch_first = False):
+        super().__init__()
         self.in_dim = in_dim
         self.hid_dim = hid_dim
         self.num_layers = num_layers
         self.bidirectional = bidirectional
         self.batch_first = batch_first
+class RNN(RNNBase):
+    def __init__(self,in_dim,hid_dim,num_layers=1,bidirectional = False,batch_first = False):
+        super().__init__(in_dim,hid_dim,num_layers,bidirectional,batch_first)
 
         # parameters for RNN
-        W_ih = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
-        b_ih = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_hh = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
-        b_hh = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        self.parameters = {}
+        W_ih = np.random.uniform(-np.sqrt(1.0/in_dim),np.sqrt(1.0/in_dim),(in_dim,hid_dim))
+        b_ih = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_hh = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim,hid_dim))
+        b_hh = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+
         self.parameters["W_ih"] = theano.shared(value=W_ih,name="W_ih")
         self.parameters['b_ih'] = theano.shared(value=b_ih,name="b_ih")
         self.parameters["W_hh"] = theano.shared(value=W_hh,name="W_hh")
         self.parameters['b_hh']= theano.shared(value=b_hh,name="b_hh")
 
-        self.gradient = {}
     def forward(self,input,hid0):
         # forward
         def forward_step(x_t, h_t, W_ih, b_ih, W_hh, b_hh):
@@ -66,35 +86,28 @@ class RNN:
                                          non_sequences=[self.parameters["W_ih"], self.parameters['b_ih'], self.parameters["W_hh"], self.parameters['b_hh']],
                                          strict=True)
         return output,output[-1]
-    def backward(self,loss_func):
-        for param in self.parameters:
-            self.gradient[param] = T.grad(loss_func,self.parameters[param])
-class LSTM:
+class LSTM(RNNBase):
     def __init__(self,in_dim,hid_dim,num_layers=1,bidirectional = False,batch_first = False):
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        self.batch_first = batch_first
-        # parameters for LSTM
-        W_ii = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
-        b_ii = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_hi = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
-        b_hi = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_if = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
-        b_if = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_hf = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
-        b_hf = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_io = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
-        b_io = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_ho = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
-        b_ho = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_ig = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
-        b_ig = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
-        W_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
-        b_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
+        super().__init__(in_dim, hid_dim, num_layers, bidirectional, batch_first)
 
-        self.parameters = {}
+        # parameters for LSTM
+        W_ii = np.random.uniform(-np.sqrt(1.0/in_dim),np.sqrt(1.0/in_dim),(in_dim,hid_dim))
+        b_ii = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_hi = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim,hid_dim))
+        b_hi = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_if = np.random.uniform(-np.sqrt(1.0/in_dim),np.sqrt(1.0/in_dim),(in_dim,hid_dim))
+        b_if = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_hf = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim,hid_dim))
+        b_hf = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_io = np.random.uniform(-np.sqrt(1.0/in_dim),np.sqrt(1.0/in_dim),(in_dim,hid_dim))
+        b_io = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_ho = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim,hid_dim))
+        b_ho = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_ig = np.random.uniform(-np.sqrt(1.0/in_dim),np.sqrt(1.0/in_dim),(in_dim,hid_dim))
+        b_ig = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+        W_hg = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim,hid_dim))
+        b_hg = np.random.uniform(-np.sqrt(1.0/hid_dim),np.sqrt(1.0/hid_dim),(hid_dim))
+
         self.parameters["W_ii"] = theano.shared(value=W_ii,name="W_ii")
         self.parameters["b_ii"] = theano.shared(value=b_ii, name="b_ii")
         self.parameters["W_hi"] = theano.shared(value=W_hi, name="W_hi")
@@ -143,19 +156,16 @@ class LSTM:
             return h_t,c_t
         [output,coutput],updates = theano.scan(forward_step,
                                          sequences=input,
-                                         outputs_info=[dict(initial = (hid0,chid0))],
+                                         outputs_info=[dict(initial = hid0),dict(initial = chid0)],
                                         non_sequences=[W_ii,b_ii,W_hi,b_hi,
                                                        W_if,b_if,W_hf,b_hf,
                                                        W_ig,b_ig,W_hg,b_hg,
                                                        W_io,b_io,W_ho,b_ho])
         return output,(output[-1],coutput[-1])
-class LSTMWithNoForget:
+class LSTMWithNoForget(RNNBase):
     def __init__(self,in_dim,hid_dim,num_layers=1,bidirectional = False,batch_first = False):
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        self.batch_first = batch_first
+        super().__init__(in_dim, hid_dim, num_layers, bidirectional, batch_first)
+
         # parameters for LSTM
         W_ii = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
         b_ii = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
@@ -170,7 +180,6 @@ class LSTMWithNoForget:
         W_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
         b_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
 
-        self.parameters = {}
         self.parameters["W_ii"] = theano.shared(value=W_ii, name="W_ii")
         self.parameters["b_ii"] = theano.shared(value=b_ii, name="b_ii")
         self.parameters["W_hi"] = theano.shared(value=W_hi, name="W_hi")
@@ -214,13 +223,10 @@ class LSTMWithNoForget:
                                                                 W_ig, b_ig, W_hg, b_hg,
                                                                 W_io, b_io, W_ho, b_ho])
         return output, (output[-1], coutput[-1])
-class LSTMPeephole:
+class LSTMPeephole(RNNBase):
     def __init__(self, in_dim, hid_dim, num_layers=1, bidirectional=False, batch_first=False):
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        self.batch_first = batch_first
+        super().__init__(in_dim, hid_dim, num_layers, bidirectional, batch_first)
+
         # parameters for LSTM
         W_ii = np.random.uniform(-np.sqrt(-1.0 / in_dim), np.sqrt(-1.0 / in_dim), (in_dim, hid_dim))
         b_ii = np.random.uniform(-np.sqrt(-1.0 / hid_dim), np.sqrt(-1.0 / hid_dim), (hid_dim))
@@ -245,7 +251,6 @@ class LSTMPeephole:
         W_hg = np.random.uniform(-np.sqrt(-1.0 / hid_dim), np.sqrt(-1.0 / hid_dim), (hid_dim, hid_dim))
         b_hg = np.random.uniform(-np.sqrt(-1.0 / hid_dim), np.sqrt(-1.0 / hid_dim), (hid_dim))
 
-        self.parameters = {}
         self.parameters["W_ii"] = theano.shared(value=W_ii, name="W_ii")
         self.parameters["b_ii"] = theano.shared(value=b_ii, name="b_ii")
         self.parameters["W_hi"] = theano.shared(value=W_hi, name="W_hi")
@@ -316,13 +321,9 @@ class LSTMPeephole:
                                                                 W_io,b_io, W_ho, b_ho,
                                                                 V_ci,b_ci, V_cf,b_cf,V_co,b_co])
         return output,(output[-1],coutput[-1])
-class LSTMCouple:
+class LSTMCouple(RNNBase):
     def __init__(self,in_dim,hid_dim,num_layers=1,bidirectional = False,batch_first = False):
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        self.batch_first = batch_first
+        super().__init__(in_dim, hid_dim, num_layers, bidirectional, batch_first)
         # parameters for LSTM
         W_ii = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
         b_ii = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
@@ -337,7 +338,6 @@ class LSTMCouple:
         W_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
         b_hg = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
 
-        self.parameters = {}
         self.parameters["W_ii"] = theano.shared(value=W_ii, name="W_ii")
         self.parameters["b_ii"] = theano.shared(value=b_ii, name="b_ii")
         self.parameters["W_hi"] = theano.shared(value=W_hi, name="W_hi")
@@ -382,13 +382,10 @@ class LSTMCouple:
                                                                 W_ig, b_ig, W_hg, b_hg,
                                                                 W_io, b_io, W_ho, b_ho])
         return output, (output[-1], coutput[-1])
-class GRU:
+class GRU(RNNBase):
     def __init__(self, in_dim, hid_dim, num_layers=1, bidirectional=False, batch_first=False):
-        self.in_dim = in_dim
-        self.hid_dim = hid_dim
-        self.num_layers = num_layers
-        self.bidirectional = bidirectional
-        self.batch_first = batch_first
+        super().__init__(in_dim, hid_dim, num_layers, bidirectional, batch_first)
+
         # parameters for GRU
         W_ir = np.random.uniform(-np.sqrt(-1.0/in_dim),np.sqrt(-1.0/in_dim),(in_dim,hid_dim))
         b_ir = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
@@ -403,7 +400,6 @@ class GRU:
         W_hn = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim,hid_dim))
         b_hn = np.random.uniform(-np.sqrt(-1.0/hid_dim),np.sqrt(-1.0/hid_dim),(hid_dim))
 
-        self.parameters = {}
         self.parameters["W_ir"] = theano.shared(value=W_ir, name="W_ir")
         self.parameters["b_ir"] = theano.shared(value=b_ir, name="b_ir")
         self.parameters["W_hr"] = theano.shared(value=W_hr, name="W_hr")
