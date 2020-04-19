@@ -1,5 +1,23 @@
 import numpy as np
-
+def GaussianSeq(Mat,Bais):
+    if (Mat.shape[0]!=Mat.shape[1]) or (Mat.shape[0]!=Bais.shape[0]):
+        raise ValueError("size of matrix doesn't match!")
+    A = Mat.copy()
+    b = Bais.copy()
+    n = A.shape[0]
+    # 消元过程
+    for k in range(n):
+        for i in range(k+1,n):
+            l_ik = A[i,k]/A[k,k]
+            for j in range(k,n):
+                A[i, j] = A[i, j] - l_ik * A[k, j]
+            b[i] = b[i] - l_ik*b[k]
+    # 回代过程
+    x = np.zeros((n,))
+    x[n-1] = b[n-1]/A[n-1,n-1]
+    for k in range(n-2,-1,-1):
+        x[k] = (b[k]-np.sum(A[k,k+1:]*x[k+1:]))/A[k,k]
+    return x
 def GaussianMain(Mat,Bais):
     if (Mat.shape[0]!=Mat.shape[1]) or (Mat.shape[0]!=Bais.shape[0]):
         raise ValueError("size of matrix doesn't match!")
@@ -76,7 +94,10 @@ def Doolittle_LU(A):
             if k==0:
                 L_U_mat[i,k] = A[i,k]/L_U_mat[k,k]
             else:
-                L_U_mat[i,k] = A[i,k] -np.sum(L_U_mat[i,:k]*L_U_mat[:k,k])
+                L_U_mat[i,k] = (A[i,k] -np.sum(L_U_mat[i,:k]*L_U_mat[:k,k]))/L_U_mat[k,k]
+    #L = np.tril(L_U_mat,k=-1)
+    #U = np.triu(L_U_mat,k=0)
+    #L = L + np.diag([1.0]*n)
     return L_U_mat
 def Doolittle_solve(A,b):
     if A.shape[0]!=b.shape[0]:
@@ -97,24 +118,11 @@ def Doolittle_solve(A,b):
             x[k] = (y[k] - np.sum(L_U_mat[k,k+1:]*x[k+1:]))/L_U_mat[k,k]
     return x
 if __name__ == '__main__':
-    '''
-    A = np.array([[12,-3,3],
-                 [-18,3,-1],
-                 [1,1,1]],dtype=np.float)
-    b = np.array([15,-15,6],dtype=np.float)
-    '''
     n = 5
     A = np.random.rand(n,n)
     b = np.random.rand(n,)
-    #print(np.linalg.solve(A,b))
-    #x = Gauss_Jordan(A,b)
-    #print(x)
-    #x = Doolittle_solve(A,b)
-    #print(x)
-    LU_mat = Doolittle_LU(A)
-    L = np.tril(LU_mat,k=-1)
-    L = L +np.diag([1]*n)
-    U = np.triu(LU_mat,k=0)
-    #print(L)
-    #print(U)
-    print(np.dot(L,U)-A)
+    print(np.linalg.solve(A,b))
+    print(GaussianSeq(A,b))
+    print(GaussianMain(A,b))
+    print(Gauss_Jordan(A,b))
+    print(Doolittle_solve(A,b))
