@@ -52,7 +52,22 @@ public:
 	//打印出粒子的路径和最短距离信息
 	void print();
 
-	
+	//生成基本交换序
+	vector<exchangeSeq> BuildBasicExchangeSeq(vector<size_t>seq1, vector<size_t>seq2);
+	//根据当前解计算下一个解，也即下一个位置
+	void computeNextPos(vector<size_t>&id1, vector<exchangeSeq>&v);
+	//生成等价集
+	vector<exchangeSeq> computeEquivalentSet(vector<exchangeSeq> sq1, vector<exchangeSeq> sq2);
+
+
+
+	//每一个迭代过程中的移动方法
+	void Movement(vector<vector<double> >citys_distance);
+	//粒子进行移动
+	void PSO::Move(vector<vector<double> >citys_distance);
+
+	//根据当前粒子的信息，计算更新速度
+	void computeNewVelocity(particle& pl);
 
 	//析构函数
 	~PSO();

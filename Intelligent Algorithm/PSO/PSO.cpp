@@ -3,6 +3,22 @@
 #include<iostream>
 using std::cout;
 using std::endl;
+#include<string>
+#include<sstream>
+using std::string;
+using std::stringstream;
+string toString(vector<size_t> arr) {
+	string line = "";
+	stringstream ss;
+	string tmp;
+	for (size_t k = 0; k < arr.size(); k++) {
+		ss << arr[k];
+		tmp = ss.str();
+		ss.str("");
+		line = line + tmp + " ";
+	}
+	return line;
+}
 //析构函数
 PSO::~PSO() {
 
@@ -57,7 +73,7 @@ void PSO::InitialSwarm(vector<vector<double> >&citys_distance) {
 	size_t citys_num= citys_distance.size();
 	srand((unsigned)time(NULL));
 	for (size_t i = 0; i < this->popsize; i++) {
-		pt.idl = PSO::BuildRandomSequence(citys_num);
+		pt.idl = PSO::BuildRandomSequence(citys_num);//初始化最初的位置信息
 		pt.pbest.sbest = pt.idl;
 		pt.pbest.path_length = PSO::GetPathLength(citys_distance,pt.pbest.sbest);
 		for (size_t j = 0; j < citys_num; j++) {
@@ -83,4 +99,85 @@ void PSO::print() {
 		cout << gbest.sbest[i] << "\t";
 	}
 	cout << gbest.sbest[0] << endl;
+}
+//生成基本交换序
+vector<PSO::exchangeSeq> PSO::BuildBasicExchangeSeq(vector<size_t>seq1, vector<size_t>seq2) {
+	vector<exchangeSeq>Seq;
+	vector<size_t> sq = seq2;
+	PSO::exchangeSeq q;
+	size_t i, j;
+	for (i = 0; i < seq1.size()-1; i++) {
+		for (j = i; j < seq1.size() && sq[j] != seq1[i]; j++);
+		q.ei = i;
+		q.ej = j;
+		if (i == j) continue;
+		size_t tp = sq[i];
+		sq[i] = sq[j];
+		sq[j] = tp;
+		Seq.push_back(q);
+	}
+	return Seq;
+}
+//生成等价集
+vector<PSO::exchangeSeq> PSO::computeEquivalentSet(vector<PSO::exchangeSeq> sq1, vector<PSO::exchangeSeq> sq2) {
+	vector<size_t> seq1, seq2;
+	size_t citys_num = sq1.size();
+	for (size_t i = 0; i < citys_num; i++) seq1.push_back(i);
+	seq2 = seq1;
+	computeNextPos(seq1, sq1);
+	computeNextPos(seq1, sq2);
+	return this->BuildBasicExchangeSeq(seq1,seq2);
+}
+//根据当前解计算下一个解，也即下一个位置
+void PSO::computeNextPos(vector<size_t>&id1, vector<PSO::exchangeSeq>&v){
+	for (size_t i = 0; i < v.size(); i++) {
+		size_t tp = id1[v[i].ei];
+		id1[v[i].ei] = id1[v[i].ej];
+		id1[v[i].ej] = tp;
+	}
+}
+//根据当前粒子的信息，计算更新速度
+void PSO::computeNewVelocity(PSO::particle& pl) {
+	//对每一个个体更新速度信息
+	vector<PSO::exchangeSeq> Pid = BuildBasicExchangeSeq(pl.pbest.sbest,pl.idl);
+	//全局更新个体信息
+	vector<PSO::exchangeSeq> Pgd = BuildBasicExchangeSeq(gbest.sbest, pl.idl);
+	vector<PSO::exchangeSeq> tp = pl.velocity;
+	//生成对应的等价集
+	tp = this->computeEquivalentSet(tp,Pid);
+	pl.velocity = this->computeEquivalentSet(tp, Pgd);
+}
+
+
+//每一个迭代过程中的移动方法
+void PSO::Movement(vector<vector<double> >citys_distance) {
+	size_t tp = 0;
+	for (size_t i = 0; i < this->particleSwarm.size(); i++) {
+		cout << toString(particleSwarm[i].idl) << endl;
+		this->computeNextPos(this->particleSwarm[i].idl, particleSwarm[i].velocity);
+		cout << toString(particleSwarm[i].idl) << endl;
+		
+		system("pause");
+		this->computeNewVelocity(this->particleSwarm[i]);
+		
+		if (this->particleSwarm[i].pbest.path_length > PSO::GetPathLength(citys_distance, this->particleSwarm[i].idl)) {
+			this->particleSwarm[i].pbest.path_length = PSO::GetPathLength(citys_distance, this->particleSwarm[i].idl);
+			
+			
+			this->particleSwarm[i].pbest.sbest = this->particleSwarm[i].idl;
+		}
+		
+		if (this->particleSwarm[i].pbest.path_length < this->gbest.path_length) {
+			gbest.path_length = this->particleSwarm[i].pbest.path_length;
+			tp = i;
+		}
+	}
+	gbest.sbest = this->particleSwarm[tp].idl;
+}
+//粒子进行移动
+void PSO::Move(vector<vector<double> >citys_distance) {
+	for (size_t t= 0; t < this->genMax; t++) {
+		this->Movement(citys_distance);
+		cout << "Best length: " << this->gbest.path_length<<endl;
+	}
 }
