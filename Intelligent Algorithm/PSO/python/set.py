@@ -48,6 +48,23 @@ class exchangeSeq:
         for k in range(len(self.exchange_list)):
             length_num = max(self.exchange_list[k].ei,self.exchange_list[k].ej,length_num)
         return length_num+1
+    def copy(self,seq = None):
+        '''
+        交换算子之间的复制操作
+        :param seq:
+        :return:
+        '''
+        if seq is None:
+            new_seq = exchangeSeq()
+            for k in range(len(self.exchange_list)):
+                new_seq.append((self.exchange_list[k].ei,self.exchange_list[k].ej))
+            return new_seq
+        elif type(seq) == exchangeSeq:
+            self.exchange_list = []
+            for k in range(len(seq)):
+                self.append((seq[k].ei,seq[k].ej))
+        else:
+            raise TypeError("Error for model type or value :%s" % str(type(seq)))
     @staticmethod
     def buildBasicExchangeSeq(seq1,seq2):
         '''
@@ -199,63 +216,3 @@ class Sequence:
             return Sequence(seq=self)
         else:
             raise TypeError("Unknown type: %s"%str(type(seq)))
-if __name__ == '__main__':
-    length = 10
-    mylist = np.random.permutation(length)
-    seq1 = Sequence(mylist)
-    seq2 = Sequence(seq_length=10)
-    seq3 = Sequence(seq_length=10)
-
-
-    # 实验一：求两个序列的交换序列
-    tmp = seq1 - seq2
-    # 实验二：一个序列与交换序列相加
-    #print(seq1)
-    #print(seq2 + tmp)
-    # 实验结果是 seq1 = seq2 + out
-    # 实验二：一个序列与交换序列相减
-    #print(seq2)
-    #print(seq1-tmp)
-    # 实验结果是 seq2 = se1 - out
-    # 实验三：一个交换序列求反
-    # print(tmp)
-    # print(-tmp)
-    # print(seq1 = seq1 - out +out)
-    # 实验四：将两个交换序列求它们的等价交换序列
-    # seq1 ==> seq2  ---> out1
-    # seq2 = seq1+out1
-    # seq2 ==> seq3  ---> out2
-    # seq3 = seq2+out2
-    # seq1 ==> seq3  ---> out
-    # seq3 = seq1 + out
-    # 所以有
-    # seq3 = seq2+out2 = seq1 + out1 + out2
-    # 定义 out = out1 + out2,其中
-    # seq3 = seq1 + out
-    # 所以有 out = seq3 - seq1
-    out1 = seq2-seq1
-    out2 = seq3-seq2
-    out = seq3-seq1
-    print(seq3)
-    print(seq1+out)
-    print(seq1+out1+out2)
-    print(seq2+out2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
