@@ -57,6 +57,32 @@ class BPClassification:
                                                      (self.bi,self.bi-learning_rate*dbi),
                                                      (self.Wo,self.Wo-learning_rate*(dWo+lambd*self.Wo)),
                                                      (self.bo,self.bo-learning_rate*dbo)])
+    def save_parameters(self,filename):
+        Wi = self.Wi.get_value()
+        bi = self.bi.get_value()
+        Wo = self.Wo.get_value()
+        bo = self.bo.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename,Wi = Wi,bi = bi,Wo=Wo,bo=bo,act_name=act_name,name=name)
+    @staticmethod
+    def load_parameters(filename):
+        npzfile = np.load(filename)
+        Wi = npzfile["Wi"]
+        bi = npzfile["bi"]
+        Wo = npzfile["Wo"]
+        bo = npzfile["bo"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = Wi.shape[0]
+        hid_dim = Wi.shape[1]
+        n_class = Wo.shape[1]
+        model = BPClassification(in_dim,hid_dim,n_class,act_name,name)
+        model.Wi.set_value(Wi)
+        model.bi.set_value(bi)
+        model.Wo.set_value(Wo)
+        model.bo.set_value(bo)
+        return model
 class BPRegression:
     def __init__(self,in_dim,hid_dim,out_dim,act_name,name=None):
         self.in_size = in_dim
@@ -108,6 +134,32 @@ class BPRegression:
                                                      (self.bi, self.bi - learning_rate * dbi),
                                                      (self.Wo, self.Wo - learning_rate * (dWo + lambd * self.Wo)),
                                                      (self.bo, self.bo - learning_rate * dbo)])
+    def save_parameters(self,filename):
+        Wi = self.Wi.get_value()
+        bi = self.bi.get_value()
+        Wo = self.Wo.get_value()
+        bo = self.bo.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename, Wi=Wi, bi=bi, Wo=Wo, bo=bo, act_name=act_name, name=name)
+    @staticmethod
+    def load_parameters(filename):
+        npzfile = np.load(filename)
+        Wi = npzfile["Wi"]
+        bi = npzfile["bi"]
+        Wo = npzfile["Wo"]
+        bo = npzfile["bo"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = Wi.shape[0]
+        hid_dim = Wi.shape[1]
+        n_class = Wo.shape[1]
+        model = BPRegression(in_dim, hid_dim, n_class, act_name, name)
+        model.Wi.set_value(Wi)
+        model.bi.set_value(bi)
+        model.Wo.set_value(Wo)
+        model.bo.set_value(bo)
+        return model
 class RBFGradClassification:
     def __init__(self,in_dim,n_class,act_name,name=None):
         self.in_dim = in_dim
@@ -155,6 +207,28 @@ class RBFGradClassification:
                                             updates=[(self.weight,self.weight-learning_rate*(dweight+lambd*self.weight)),
                                                      (self.mu,self.mu -learning_rate*dmu),
                                                      (self.gamma,self.gamma-learning_rate*dgamma)])
+    def save_parameters(self,filename):
+        weight = self.weight.get_value()
+        mu = self.mu.get_value()
+        gamma = self.gamma.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename, weight=weight,mu=mu,gamma=gamma,act_name=act_name, name=name)
+    @staticmethod
+    def load_parameters(self,filename):
+        npzfile = np.load(filename)
+        weight = npzfile["weight"]
+        mu = npzfile["mu"]
+        gamma = npzfile["gamma"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = weight.shape[0]
+        n_class = weight.shape[1]
+        model = RBFGradClassification(in_dim, n_class, act_name, name)
+        model.weight.set_value(weight)
+        model.mu.set_value(mu)
+        model.gamma.set_value(gamma)
+        return model
 class RBFGradRegression:
     def __init__(self,in_dim,out_dim,act_name,name=None):
         self.in_dim = in_dim
@@ -200,6 +274,27 @@ class RBFGradRegression:
                                                       self.weight - learning_rate * (dweight + lambd * self.weight)),
                                                      (self.mu, self.mu - learning_rate * dmu),
                                                      (self.gamma, self.gamma - learning_rate * dgamma)])
+    def save_parameters(self,filename):
+        weight = self.weight.get_value()
+        mu = self.mu.get_value()
+        gamma = self.gamma.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename, weight=weight, mu=mu, gamma=gamma, act_name=act_name, name=name)
+    def load_parameters(self,filename):
+        npzfile = np.load(filename)
+        weight = npzfile["weight"]
+        mu = npzfile["mu"]
+        gamma = npzfile["gamma"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = weight.shape[0]
+        n_class = weight.shape[1]
+        model = RBFGradRegression(in_dim, n_class, act_name, name)
+        model.weight.set_value(weight)
+        model.mu.set_value(mu)
+        model.gamma.set_value(gamma)
+        return model
 class RBFBPClassification:
     def __init__(self,in_dim,hid_dim,n_class,act_name,name = None):
         self.in_dim = in_dim
@@ -265,6 +360,41 @@ class RBFBPClassification:
                                                      (self.bo, self.bo - learning_rate * dbo),
                                                      (self.hmu, self.hmu - learning_rate * dhmu),
                                                      (self.hgamma, self.hgamma - learning_rate * dhgamma)])
+
+    def save_parameters(self, filename):
+        Wi = self.Wi.get_value()
+        bi = self.bi.get_value()
+        Wo = self.Wo.get_value()
+        bo = self.bo.get_value()
+        hmu = self.hmu.get_value()
+        hgamma = self.hgamma.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename, Wi=Wi, bi=bi, Wo=Wo, bo=bo,
+                 hmu=hmu,hgamma=hgamma,act_name=act_name, name=name)
+
+    @staticmethod
+    def load_parameters(filename):
+        npzfile = np.load(filename)
+        Wi = npzfile["Wi"]
+        bi = npzfile["bi"]
+        Wo = npzfile["Wo"]
+        bo = npzfile["bo"]
+        hmu = npzfile["hmu"]
+        hgamma = npzfile["hgamma"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = Wi.shape[0]
+        hid_dim = Wi.shape[1]
+        n_class = Wo.shape[1]
+        model = RBFBPClassification(in_dim, hid_dim, n_class, act_name, name)
+        model.Wi.set_value(Wi)
+        model.bi.set_value(bi)
+        model.Wo.set_value(Wo)
+        model.bo.set_value(bo)
+        model.hmu.set_value(hmu)
+        model.hgamma.set_value(hgamma)
+        return model
 class RBFBPRegression:
     def __init__(self,in_dim,hid_dim,out_dim,act_name,name):
         self.in_dim = in_dim
@@ -328,3 +458,38 @@ class RBFBPRegression:
                                                      (self.bo, self.bo - learning_rate * dbo),
                                                      (self.hmu, self.hmu - learning_rate * dhmu),
                                                      (self.hgamma, self.hgamma - learning_rate * dhgamma)])
+
+    def save_parameters(self, filename):
+        Wi = self.Wi.get_value()
+        bi = self.bi.get_value()
+        Wo = self.Wo.get_value()
+        bo = self.bo.get_value()
+        hmu = self.hmu.get_value()
+        hgamma = self.hgamma.get_value()
+        act_name = self.act_name
+        name = self.name
+        np.savez(filename, Wi=Wi, bi=bi, Wo=Wo, bo=bo,
+                 hmu=hmu, hgamma=hgamma, act_name=act_name, name=name)
+
+    @staticmethod
+    def load_parameters(filename):
+        npzfile = np.load(filename)
+        Wi = npzfile["Wi"]
+        bi = npzfile["bi"]
+        Wo = npzfile["Wo"]
+        bo = npzfile["bo"]
+        hmu = npzfile["hmu"]
+        hgamma = npzfile["hgamma"]
+        act_name = npzfile["act_name"]
+        name = npzfile["name"]
+        in_dim = Wi.shape[0]
+        hid_dim = Wi.shape[1]
+        n_class = Wo.shape[1]
+        model = RBFBPRegression(in_dim, hid_dim, n_class, act_name, name)
+        model.Wi.set_value(Wi)
+        model.bi.set_value(bi)
+        model.Wo.set_value(Wo)
+        model.bo.set_value(bo)
+        model.hmu.set_value(hmu)
+        model.hgamma.set_value(hgamma)
+        return model
