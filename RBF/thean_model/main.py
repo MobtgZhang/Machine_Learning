@@ -29,7 +29,8 @@ def train(model,loadedData,args):
         logger.info("Validating loss value:%f" % (loss))
     logger.info("Trained  for dataset:%s dataset completed." % args.type)
     # save data parameters
-
+    modelfilename = os.path.join(args.logdir,model.name) + ".npz"
+    model.save_parameters(modelfilename)
 def test(model,loadedData,args):
     logger = logging.getLogger()
     input,target = loadedData.gettest()
