@@ -1,28 +1,49 @@
 #pragma once
 #ifndef MATRIX_H
 #define MATRIX_H
+struct Size{
+	unsigned int RowLength;
+	unsigned int ColumnLength;
+	Size(unsigned int r,unsigned int c){
+		this->RowLength = r;
+		this->ColumnLength = c;
+	}
+	Size(Size&size){
+		this->RowLength = size.RowLength;
+		this->ColumnLength = size.ColumnLength;
+	}
+};
 template<typename DataType>
 class Matrix {
 private:
-	unsigned int RowLength;
-	unsigned int ColumnLength;
-	DataType** Matrix;
+	Size mat_size;
+	DataType** InnerMat;
 public:
-	//¹¹Ôìº¯Êı
-	Matrix();
-	//ÊµÏÖÁ½¸ö¾ØÕóÏà³Ë(Öğ¸öÔªËØ)
+	//æ„é€ å‡½æ•°
+	Matrix(Matrix<DataType>&mat);
+	Matrix(unsigned int RowLength, unsigned int ColumnLength);
+	Matrix(Size size);
+	//è·å–çŸ©é˜µçš„å¤§å°
+	unsigned int GetRowLength() { return this->mat_size.RowLength; }
+	unsigned int GetColumnLength() { return this->mat_size.ColumnLength; }
+	Size size(){return this->mat_size;}
+	//è¡¨ç¤ºçŸ©é˜µé€ä¸ªå…ƒç´ ç›¸ä¹˜
 	Matrix<DataType> mul(Matrix<DataType>& mat);
 	Matrix<DataType> mul(DataType value);
-	//ÊµÏÖÁ½¸ö¾ØÕóÏà¼Ó(Öğ¸öÔªËØ)
+	//è·å–çŸ©é˜µä¸­çš„æŸä¸€ä¸ªå…ƒç´ 
+	DataType Get(unsigned int rowindex,unsigned int columninex);
+	//è®¾ç½®çŸ©é˜µä¸­çš„æŸä¸€ä¸ªå…ƒç´ 
+	void Set(DataType value,unsigned int rowindex,unsigned int columninex);
+	//è¡¨ç¤ºçŸ©é˜µé€ä¸ªå…ƒç´ ç›¸åŠ 
 	Matrix<DataType> add(Matrix<DataType>& mat);
 	Matrix<DataType> add(DataType value);
-	//ÊµÏÖÁ½¸ö¾ØÕóÏà¼õ(Öğ¸öÔªËØ)
+	//è¡¨ç¤ºçŸ©é˜µä¸­é€ä¸ªå…ƒç´ ç›¸å‡
 	Matrix<DataType> sub(Matrix<DataType>& mat);
 	Matrix<DataType> sub(DataType value);
-	//ÊµÏÖÁ½¸ö¾ØÕóÏà³ı(Öğ¸öÔªËØ)
+	//è¡¨ç¤ºçŸ©é˜µä¸­é€ä¸ªå…ƒç´ ç›¸é™¤
 	Matrix<DataType> div(Matrix<DataType>& mat);
 	Matrix<DataType> div(DataType value);
-	//ÖØÔØÔËËã·û
+	//é‡è½½è¿ç®—ç¬¦
 	Matrix<DataType> operator +(Matrix<DataType>& mat) { return this->add(mat); }
 	Matrix<DataType> operator +(DataType value) { return this->add(value); }
 	Matrix<DataType> operator -(Matrix<DataType>& mat) { return this->sub(mat); }
@@ -31,13 +52,123 @@ public:
 	Matrix<DataType> operator *(DataType value) { return this->mul(value); }
 	Matrix<DataType> operator /(Matrix<DataType>& mat) { return this->div(mat); }
 	Matrix<DataType> operator /(DataType value) { return this->div(value); }
-	//Îö¹¹º¯Êı
+	//ææ„å‡½æ•°
 	~Matrix();
 };
+//æ„é€ å‡½æ•°çš„å®ç°
 template<typename DataType>
 Matrix<DataType>::Matrix(unsigned int RowLength, unsigned int ColumnLength) {
-	for (unsigned int k = 0; k < RowLength; k++) {
-
+	this->mat_size.RowLength = RowLength;
+	this->mat_size.ColumnLength = ColumnLength;
+	this->InnerMat = new DataType[RowLength][ColumnLength];
+}
+template<typename DataType>
+Matrix<DataType>::Matrix(Size& size){
+	this->mat_size.RowLength = size.RowLength;
+	this->mat_size.ColumnLength = size.ColumnLength;
+	this->InnerMat = new DataType[size.RowLength][size.ColumnLength];
+}
+template<typename DataType>
+Matrix<DataType>::Matrix(Matrix<DataType>&mat) {
+	this->mat_size = Size(mat.size())
+	this->InnerMat = new DataType[this.mat_size.RowLength][this.mat_size.ColumnLength];
+}
+//ææ„å‡½æ•°çš„å®ç°
+template<typename DataType>
+Matrix<DataType>::~Matrix() {
+	delete []this->InnerMat;
+}
+template<typename DataType>
+Matrix<DataType>::add(Matrix<DataType>& mat) {
+	if (mat.GetRowLength() != this->mat_size.RowLength && mat.GetColumnLength() != this->mat_size.ColumnLength) {
+		throw "The size of two matrix don't match!"
 	}
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for(unsigned int k=0;k<this->mat_size.RowLength;k++){
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Rsult.Set(this->InnerMat[k,j]+mat.Get(k,j),k,j);
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::add(DataType value) {
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for (unsigned int k = 0; k < this->mat_size.RowLength; k++) {
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Result.Set(this->InnerMat[k][j]+value,k,j); 
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::sub(Matrix<DataType>& mat) {
+	if (mat.GetRowLength() != this->mat_size.RowLength && mat.GetColumnLength() != this->mat_size.ColumnLength) {
+		throw "The size of two matrix don't match!"
+	}
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for(unsigned int k=0;k<this->mat_size.RowLength;k++){
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Rsult.Set(this->InnerMat[k,j]-mat.Get(k,j),k,j);
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::sub(DataType value) {
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for (unsigned int k = 0; k < this->mat_size.RowLength; k++) {
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Result.Set(this->InnerMat[k][j]-value,k,j); 
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::div(Matrix<DataType>& mat) {
+	if (mat.GetRowLength() != this->mat_size.RowLength && mat.GetColumnLength() != this->mat_size.ColumnLength) {
+		throw "The size of two matrix don't match!"
+	}
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for(unsigned int k=0;k<this->mat_size.RowLength;k++){
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Rsult.Set(this->InnerMat[k,j]/mat.Get(k,j),k,j);
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::div(DataType value) {
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for (unsigned int k = 0; k < this->mat_size.RowLength; k++) {
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Result.Set(this->InnerMat[k][j]/value,k,j); 
+		}
+	}
+	return Rsult;
+}
+
+template<typename DataType>
+Matrix<DataType>::mul(Matrix<DataType>& mat) {
+	if (mat.GetRowLength() != this->mat_size.RowLength && mat.GetColumnLength() != this->mat_size.ColumnLength) {
+		throw "The size of two matrix don't match!"
+	}
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for(unsigned int k=0;k<this->mat_size.RowLength;k++){
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Rsult.Set(this->InnerMat[k,j]*mat.Get(k,j),k,j);
+		}
+	}
+	return Rsult;
+}
+template<typename DataType>
+Matrix<DataType>::mul(DataType value) {
+	Matrix<DataType> Result(this->mat_size.RowLength,this->mat_size.ColumnLength);
+	for (unsigned int k = 0; k < this->mat_size.RowLength; k++) {
+		for(unsigned int j=0;j<this->mat_size.ColumnLength;j++){
+			Result.Set(this->InnerMat[k][j]*value,k,j); 
+		}
+	}
+	return Rsult;
 }
 #endif
