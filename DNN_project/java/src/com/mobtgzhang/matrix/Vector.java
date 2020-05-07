@@ -33,6 +33,20 @@ public class Vector {
     public void set(double value,int index){
         this.vector[index]=value;
     }
+    public Matrix reshape(int row,int colum) throws Exception {
+        if(row*colum!=this.length){
+            throw new Exception("The Size:("+row+","+colum+"),("+this.length+") don't match!");
+        }
+        int index = 0;
+        Matrix returnMat = new Matrix(row,colum,false);
+        for(int k=0;k<row;k++){
+            for(int j=0;j<colum;j++){
+                returnMat.set(this.vector[index],k,j);
+                index++;
+            }
+        }
+        return returnMat;
+    }
     @Override
     public String toString() {
         String str_size = "Size:["+this.length+"]\n";

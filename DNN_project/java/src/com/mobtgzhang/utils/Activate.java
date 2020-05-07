@@ -10,7 +10,7 @@ public abstract class Activate {
     }
 
     public String getAct_name() {
-        return act_name;
+        return this.act_name;
     }
     public abstract double innerFunc(double value);
     public Matrix forward(Matrix input){

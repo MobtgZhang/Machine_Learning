@@ -2,6 +2,10 @@ package com.mobtgzhang.utils;
 
 import com.mobtgzhang.matrix.Matrix;
 import com.mobtgzhang.matrix.Vector;
+import com.mobtgzhang.utils.activates.Relu;
+import com.mobtgzhang.utils.activates.Sigmoid;
+import com.mobtgzhang.utils.activates.SoftPlus;
+import com.mobtgzhang.utils.activates.Tanh;
 
 public class MathTool {
     public static Matrix add(Matrix matA,Matrix matB) throws Exception {
@@ -267,5 +271,31 @@ public class MathTool {
             returnVec.set(value,j);
         }
         return returnVec;
+    }
+    public static Activate selectAct(String act_name) throws Exception {
+        switch (act_name){
+            case "Sigmoid":
+                return new Sigmoid();
+            case "Relu":
+                return new Relu();
+            case "Tanh":
+                return new Tanh();
+            case "SoftPlus":
+                return new SoftPlus();
+            default:
+                throw new Exception("Unknown activate function: "+act_name+
+                        "and add it to \"class Activate.\"");
+        }
+    }
+    public static Vector linspace(double down,double up,int length) throws Exception {
+        if (up<=down){
+            throw new Exception("The value(up: "+up+" down:"+down+") don't math!");
+        }
+        double delta = (up- down)/(double)(length-1);
+        Vector resultVec = new Vector(length,false);
+        for(int k=0;k<length;k++){
+            resultVec.set(delta*k,k);
+        }
+        return resultVec;
     }
 }
